@@ -1,0 +1,146 @@
+services:
+  sabnzbd-movies:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd-movies
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+    volumes:
+      - /var/config/sabnzbd-movies:/config
+      - /mnt/nas1/mattyflix:/mattyflix
+    networks:
+      - proxy
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+  sabnzbd-series:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd-series
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+    volumes:
+      - /var/config/sabnzbd-series:/config
+      - /mnt/nas2/mattyflix:/mattyflix
+    networks:
+      - proxy
+    ports:
+      - 8081:8080
+    restart: unless-stopped
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+    volumes:
+      - /var/config/sonarr:/config
+    networks:
+      - proxy
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+    volumes:
+      - /var/config/radarr:/config
+    networks:
+      - proxy
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: jackett
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+      - AUTO_UPDATE=true #optional
+      - RUN_OPTS= #optional
+    volumes:
+      - /var/config/jackett:/config
+    networks:
+      - proxy
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+    volumes:
+      - /var/config/overseerr:/config
+    networks:
+      - proxy
+    ports:
+      - 5055:5055
+    restart: unless-stopped
+    labels:
+      - "traefik.docker.network=proxy"
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.overseerr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.overseerr-secure.entrypoints=https"
+      - "traefik.http.routers.overseerr-secure.rule=Host(`search.mattyflix.com`)"
+      - "traefik.http.routers.overseerr-secure.service=overseerr"
+      - "traefik.http.routers.overseerr-secure.tls=true"
+      - "traefik.http.routers.overseerr-secure.tls.certresolver=http"
+      - "traefik.http.routers.overseerr.entrypoints=http"
+      - "traefik.http.routers.overseerr.middlewares=overseerr-https-redirect"
+      - "traefik.http.routers.overseerr.rule=Host(`search.mattyflix.com`)"
+      - "traefik.http.services.overseerr.loadbalancer.server.port=5055"
+  tautulli:
+    image: ghcr.io/tautulli/tautulli
+    container_name: tautulli
+    restart: unless-stopped
+    volumes:
+      - /var/config/Tautulli/config:/config
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+    networks:
+      - proxy
+    ports:
+      - 8181:8181
+    labels:
+      - "traefik.docker.network=proxy"
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.tautulli-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.tautulli-secure.entrypoints=https"
+      - "traefik.http.routers.tautulli-secure.rule=Host(`tautulli.mattyflix.com`)"
+      - "traefik.http.routers.tautulli-secure.service=tautulli"
+      - "traefik.http.routers.tautulli-secure.tls=true"
+      - "traefik.http.routers.tautulli-secure.tls.certresolver=http"
+      - "traefik.http.routers.tautulli.entrypoints=http"
+      - "traefik.http.routers.tautulli.middlewares=tautulli-https-redirect"
+      - "traefik.http.routers.tautulli.rule=Host(`tautulli.mattyflix.com`)"
+      - "traefik.http.services.tautulli.loadbalancer.server.port=8181"
+services:
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+    volumes:
+      - /var/config/prowlarr:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+networks:
+  proxy:
+    external: true
