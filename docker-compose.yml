@@ -38,6 +38,7 @@ services:
       - TZ=America/Detroit
     volumes:
       - /var/config/sonarr:/config
+      - /mnt/nas2/mattyflix:/mattyflix
     networks:
       - proxy
     ports:
@@ -52,6 +53,7 @@ services:
       - TZ=America/Detroit
     volumes:
       - /var/config/radarr:/config
+      - /mnt/nas1/mattyflix:/mattyflix
     networks:
       - proxy
     ports:
@@ -127,7 +129,6 @@ services:
       - "traefik.http.routers.tautulli.middlewares=tautulli-https-redirect"
       - "traefik.http.routers.tautulli.rule=Host(`tautulli.mattyflix.com`)"
       - "traefik.http.services.tautulli.loadbalancer.server.port=8181"
-services:
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
@@ -137,8 +138,43 @@ services:
       - TZ=America/Detroit
     volumes:
       - /var/config/prowlarr:/config
+    networks:
+      - proxy
     ports:
       - 9696:9696
+    restart: unless-stopped
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+    volumes:
+      - /var/config/bazarr:/config
+      - /mnt/nas1/mattyflix/media/movies:/movies #optional
+      - /mnt/nas2/mattyflix/media/tv:/tv #optional
+    networks:
+      - proxy
+    ports:
+      - 6767:6767
+    restart: unless-stopped
+  kometa:
+    image: lscr.io/linuxserver/kometa:latest
+    container_name: kometa
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+      - KOMETA_CONFIG=/config/config.yml #optional
+      - KOMETA_TIMES=03:00 #optional
+      - KOMETA_RUN=False #optional
+      - KOMETA_TESTS=False #optional
+      - KOMETA_NO_MISSING=False #optional
+    networks:
+      - proxy
+    volumes:
+      - /var/config/kometa/config:/config
     restart: unless-stopped
 
 networks:
