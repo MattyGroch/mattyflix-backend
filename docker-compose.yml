@@ -153,7 +153,7 @@ services:
     volumes:
       - /var/config/bazarr:/config
       - /mnt/nas1/mattyflix/media/movies:/movies #optional
-      - /mnt/nas2/mattyflix/media/tv:/tv #optional
+      - /mnt/nas2/mattyflix/media/series:/tv #optional
     networks:
       - proxy
     ports:
