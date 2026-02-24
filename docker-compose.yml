@@ -59,6 +59,18 @@ services:
     ports:
       - 7878:7878
     restart: unless-stopped
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+    volumes:
+      - /var/config/lidarr:/config
+    ports:
+      - 8686:8686
+    restart: unless-stopped
   jackett:
     image: lscr.io/linuxserver/jackett:latest
     container_name: jackett
