@@ -68,6 +68,7 @@ services:
       - TZ=America/Detroit
     volumes:
       - /var/config/lidarr:/config
+      - /mnt/nas3/mattyflix:/mattyflix
     ports:
       - 8686:8686
     restart: unless-stopped
