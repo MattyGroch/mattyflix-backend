@@ -14,6 +14,7 @@ services:
     ports:
       - 8080:8080
     restart: unless-stopped
+
   sabnzbd-series:
     image: lscr.io/linuxserver/sabnzbd:latest
     container_name: sabnzbd-series
@@ -29,6 +30,23 @@ services:
     ports:
       - 8081:8080
     restart: unless-stopped
+
+  sabnzbd-music:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd-music
+    environment:
+      - PUID=1000
+      - PGID=999
+      - TZ=America/Detroit
+    volumes:
+      - /var/config/sabnzbd-music:/config
+      - /mnt/nas3/mattyflix:/mattyflix
+    networks:
+      - proxy
+    ports:
+      - 8082:8080
+    restart: unless-stopped
+
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
     container_name: sonarr
@@ -44,6 +62,7 @@ services:
     ports:
       - 8989:8989
     restart: unless-stopped
+
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
@@ -59,6 +78,7 @@ services:
     ports:
       - 7878:7878
     restart: unless-stopped
+
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest
     container_name: lidarr
@@ -71,7 +91,10 @@ services:
       - /mnt/nas3/mattyflix:/mattyflix
     ports:
       - 8686:8686
+    networks:
+      - proxy
     restart: unless-stopped
+
   jackett:
     image: lscr.io/linuxserver/jackett:latest
     container_name: jackett
@@ -88,33 +111,41 @@ services:
     ports:
       - 9117:9117
     restart: unless-stopped
-  overseerr:
-    image: lscr.io/linuxserver/overseerr:latest
-    container_name: overseerr
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    init: true
+    container_name: seerr
     environment:
-      - PUID=1000
-      - PGID=999
+      - LOG_LEVEL=debug
       - TZ=America/Detroit
-    volumes:
-      - /var/config/overseerr:/config
-    networks:
-      - proxy
     ports:
       - 5055:5055
+    volumes:
+      - /var/config/seerr:/app/config
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/status || exit 1
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
     restart: unless-stopped
+    networks:
+      - proxy
     labels:
       - "traefik.docker.network=proxy"
       - "traefik.enable=true"
-      - "traefik.http.middlewares.overseerr-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.overseerr-secure.entrypoints=https"
-      - "traefik.http.routers.overseerr-secure.rule=Host(`search.mattyflix.com`)"
-      - "traefik.http.routers.overseerr-secure.service=overseerr"
-      - "traefik.http.routers.overseerr-secure.tls=true"
-      - "traefik.http.routers.overseerr-secure.tls.certresolver=http"
-      - "traefik.http.routers.overseerr.entrypoints=http"
-      - "traefik.http.routers.overseerr.middlewares=overseerr-https-redirect"
-      - "traefik.http.routers.overseerr.rule=Host(`search.mattyflix.com`)"
-      - "traefik.http.services.overseerr.loadbalancer.server.port=5055"
+      - "traefik.http.middlewares.seerr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.seerr-secure.entrypoints=https"
+      - "traefik.http.routers.seerr-secure.rule=Host(`search.mattyflix.com`)"
+      - "traefik.http.routers.seerr-secure.service=overseerr"
+      - "traefik.http.routers.seerr-secure.tls=true"
+      - "traefik.http.routers.seerr-secure.tls.certresolver=http"
+      - "traefik.http.routers.seerr.entrypoints=http"
+      - "traefik.http.routers.seerr.middlewares=seerr-https-redirect"
+      - "traefik.http.routers.seerr.rule=Host(`search.mattyflix.com`)"
+      - "traefik.http.services.seerr.loadbalancer.server.port=5055"
+  
   tautulli:
     image: ghcr.io/tautulli/tautulli
     container_name: tautulli
@@ -164,7 +195,7 @@ services:
       - PGID=999
       - TZ=America/Detroit
     volumes:
-      - /var/config/bazarr:/config
+      - /var/config/bazarr/config:/config
       - /mnt/nas1/mattyflix/media/movies:/movies #optional
       - /mnt/nas2/mattyflix/media/series:/tv #optional
     networks:
