@@ -133,16 +133,8 @@ services:
     networks:
       - proxy
     labels:
-      - "traefik.docker.network=proxy"
       - "traefik.enable=true"
-      - "traefik.http.middlewares.seerr-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.seerr-secure.entrypoints=https"
-      - "traefik.http.routers.seerr-secure.rule=Host(`search.mattyflix.com`)"
-      - "traefik.http.routers.seerr-secure.service=overseerr"
-      - "traefik.http.routers.seerr-secure.tls=true"
-      - "traefik.http.routers.seerr-secure.tls.certresolver=http"
-      - "traefik.http.routers.seerr.entrypoints=http"
-      - "traefik.http.routers.seerr.middlewares=seerr-https-redirect"
+      - "traefik.http.routers.seerr.entrypoints=websecure"
       - "traefik.http.routers.seerr.rule=Host(`search.mattyflix.com`)"
       - "traefik.http.services.seerr.loadbalancer.server.port=5055"
   
@@ -161,18 +153,11 @@ services:
     ports:
       - 8181:8181
     labels:
-      - "traefik.docker.network=proxy"
       - "traefik.enable=true"
-      - "traefik.http.middlewares.tautulli-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.tautulli-secure.entrypoints=https"
-      - "traefik.http.routers.tautulli-secure.rule=Host(`tautulli.mattyflix.com`)"
-      - "traefik.http.routers.tautulli-secure.service=tautulli"
-      - "traefik.http.routers.tautulli-secure.tls=true"
-      - "traefik.http.routers.tautulli-secure.tls.certresolver=http"
-      - "traefik.http.routers.tautulli.entrypoints=http"
-      - "traefik.http.routers.tautulli.middlewares=tautulli-https-redirect"
+      - "traefik.http.routers.tautulli.entrypoints=websecure"
       - "traefik.http.routers.tautulli.rule=Host(`tautulli.mattyflix.com`)"
       - "traefik.http.services.tautulli.loadbalancer.server.port=8181"
+
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
@@ -219,6 +204,90 @@ services:
       - proxy
     volumes:
       - /var/config/kometa/config:/config
+    restart: unless-stopped
+
+  maintainerr:
+    image: ghcr.io/maintainerr/maintainerr:latest
+    container_name: maintainerr
+    user: 1000:999
+    networks:
+      - proxy
+    volumes:
+      - /var/config/maintainerr:/opt/data
+    environment:
+      - TZ=America/Detroit
+      - GITHUB_TOKEN=${GITHUB_PAT}
+    ports:
+      - 6246:6246
+    restart: unless-stopped
+
+  tracearr:
+    image: ghcr.io/connorgallopo/tracearr:latest
+    container_name: tracearr
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - TZ=America/Detroit
+      - DATABASE_URL=postgres://tracearr:${TRACEARR_DB_PASSWORD}@tracearr-db:5432/tracearr
+      - REDIS_URL=redis://tracearr-redis:6379
+      - JWT_SECRET=${TRACEARR_JWT_SECRET}
+      - COOKIE_SECRET=${TRACEARR_COOKIE_SECRET}
+      - CORS_ORIGIN=${TRACEARR_CORS_ORIGIN:-*}
+      - LOG_LEVEL=info
+    depends_on:
+      tracearr-db:
+        condition: service_healthy
+      tracearr-redis:
+        condition: service_healthy
+    volumes:
+      - /var/config/tracearr/backups:/data/backup
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tracearr.entrypoints=websecure"
+      - "traefik.http.routers.tracearr.rule=Host(`stats.mattyflix.com`)"
+      - "traefik.http.services.tracearr.loadbalancer.server.port=3000"
+    restart: unless-stopped
+
+  tracearr-db:
+    image: timescale/timescaledb-ha:pg18.1-ts2.25.0
+    container_name: tracearr-db
+    shm_size: 512mb
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    command: postgres -c timescaledb.license=timescale -c timescaledb.max_tuples_decompressed_per_dml_transaction=0 -c max_locks_per_transaction=4096 -c timescaledb.telemetry_level=off
+    environment:
+      - POSTGRES_USER=tracearr
+      - POSTGRES_PASSWORD=${TRACEARR_DB_PASSWORD}
+      - POSTGRES_DB=tracearr
+    volumes:
+      - /var/config/tracearr/timescale:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tracearr"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proxy
+    restart: unless-stopped
+
+  tracearr-redis:
+    image: redis:8-alpine
+    container_name: tracearr-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - /var/config/tracearr/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proxy
     restart: unless-stopped
 
 networks:
