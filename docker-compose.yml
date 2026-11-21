@@ -463,6 +463,29 @@ services:
       - proxy
     restart: unless-stopped
 
+  watchtower:
+    # Nightly image updates for everything on this host that comes from a registry.
+    # nickfedor/watchtower is the maintained fork (containrrr/watchtower was archived in 2025).
+    # Excluded: images built from source by Portainer (nothing to pull), apps that GitHub
+    # Actions already deploy via webhook, and Portainer itself (upgrade it on purpose).
+    image: nickfedor/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=America/Detroit
+      - WATCHTOWER_SCHEDULE=0 0 5 * * *
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_DISABLE_CONTAINERS=portainer,discord-role-sync,gw2-pathfinder-backend,gw2-pathfinder-frontend,gw2-storytimes-api,gw2-storytracker,swu-api,swu-organizer,mattyflix-loot-mattyflix-loot-1,mclcg-companion-mclcg-companion-1
+      # Metrics for the home.mattyflix.com dashboard (reached over the proxy network only;
+      # no Traefik labels, so it has no public address).
+      - WATCHTOWER_HTTP_API_METRICS=true
+      - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_TOKEN}
+      - WATCHTOWER_HTTP_API_PERIODIC_POLLS=true
+    networks:
+      - proxy
+    restart: unless-stopped
+
 networks:
   proxy:
     external: true
