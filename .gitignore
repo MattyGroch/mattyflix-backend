@@ -1,0 +1,4 @@
+# Secrets live in Portainer's stack environment variables, never in this public repo.
+.env
+*.env
+!stack.env.example
