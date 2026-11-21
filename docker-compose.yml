@@ -423,6 +423,22 @@ services:
       - proxy
     restart: unless-stopped
 
+  assets:
+    # Static files (logos for newsletters, Wizarr, etc.) at https://assets.mattyflix.com/<file>
+    # Drop files into /var/config/assets on the host; no restart needed.
+    image: nginx:stable-alpine
+    container_name: assets
+    volumes:
+      - /var/config/assets:/usr/share/nginx/html:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.assets.entrypoints=websecure"
+      - "traefik.http.routers.assets.rule=Host(`assets.mattyflix.com`)"
+      - "traefik.http.services.assets.loadbalancer.server.port=80"
+    networks:
+      - proxy
+    restart: unless-stopped
+
 networks:
   proxy:
     external: true
