@@ -95,23 +95,6 @@ services:
       - proxy
     restart: unless-stopped
 
-  jackett:
-    image: lscr.io/linuxserver/jackett:latest
-    container_name: jackett
-    environment:
-      - PUID=1000
-      - PGID=999
-      - TZ=America/Detroit
-      - AUTO_UPDATE=true #optional
-      - RUN_OPTS= #optional
-    volumes:
-      - /var/config/jackett:/config
-    networks:
-      - proxy
-    ports:
-      - 9117:9117
-    restart: unless-stopped
-
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
     init: true
