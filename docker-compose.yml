@@ -291,6 +291,32 @@ services:
       - proxy
     restart: unless-stopped
 
+  discord-role-sync:
+    # Gives the Discord "Member" role to everyone with Plex access and removes it
+    # when access ends (e.g. Wizarr expiry). See discord-role-sync/README.md.
+    build: ./discord-role-sync
+    image: mattyflix/discord-role-sync:local
+    container_name: discord-role-sync
+    environment:
+      - TZ=America/Detroit
+      - DISCORD_TOKEN=${ROLE_SYNC_DISCORD_TOKEN}
+      - GUILD_ID=1083290111233503302
+      - ROLE_ID=1174435703615135858
+      - PLEX_TOKEN=${ROLE_SYNC_PLEX_TOKEN}
+      - PLEX_MACHINE_ID=c0b30eb3ffb598b8bb19248f017e0cd07cba6439
+      - SEERR_URL=http://seerr:5055
+      - SEERR_API_KEY=${ROLE_SYNC_SEERR_API_KEY}
+      - DRY_RUN=${ROLE_SYNC_DRY_RUN:-true}
+      - MAX_REMOVALS_PER_RUN=${ROLE_SYNC_MAX_REMOVALS:-5}
+      - PROTECTED_DISCORD_IDS=${ROLE_SYNC_PROTECTED_IDS:-}
+    volumes:
+      - /var/config/discord-role-sync:/config:ro
+    depends_on:
+      - seerr
+    networks:
+      - proxy
+    restart: unless-stopped
+
 networks:
   proxy:
     external: true
