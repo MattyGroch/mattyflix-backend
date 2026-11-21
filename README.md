@@ -19,6 +19,10 @@ The Mattyflix media stack (the *arr apps, SABnzbd, Seerr, Tautulli, Tracearr, Ko
 - NAS shares mounted at `/mnt/nas1/mattyflix`, `/mnt/nas2/mattyflix`, `/mnt/nas3/mattyflix`
 - Traefik routes web UIs through `traefik.*` labels on the `websecure` entrypoint
 
+## Static assets
+
+`assets` serves `/var/config/assets` on the Docker host at `https://assets.mattyflix.com/<file>`, for logos and images used in newsletters and Wizarr pages. Add a file to that folder and it's live; nothing needs restarting. There's no directory listing.
+
 ## Secrets
 
 This repo is **public**. Keep every secret in Portainer's stack environment variables, which `docker-compose.yml` references as `${VAR}`. `.gitignore` blocks `.env` and `stack.env`.
