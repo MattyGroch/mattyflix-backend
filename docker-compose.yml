@@ -439,6 +439,28 @@ services:
       - proxy
     restart: unless-stopped
 
+  cloudflare-ddns:
+    # Keeps mail.mattyflix.com pointed at the home IP. Every other subdomain is a
+    # CNAME/wildcard to mail.mattyflix.com, so this is the only record that tracks the IP.
+    image: favonia/cloudflare-ddns:1
+    container_name: cloudflare-ddns
+    user: "1000:999"
+    read_only: true
+    cap_drop:
+      - all
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - CF_API_TOKEN=${DDNS_CLOUDFLARE_TOKEN}
+      - DOMAINS=mail.mattyflix.com
+      - PROXIED=false
+      - IP6_PROVIDER=none
+      - UPDATE_CRON=@every 5m
+      - TZ=America/Detroit
+    networks:
+      - proxy
+    restart: unless-stopped
+
 networks:
   proxy:
     external: true
