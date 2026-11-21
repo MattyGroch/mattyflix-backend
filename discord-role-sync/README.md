@@ -8,6 +8,8 @@ Keeps the Discord **Member** role (role ID `1174435703615135858`, formerly "Plex
 
 The role is matched by ID, so renaming it in Discord doesn't affect anything.
 
+**Welcome DM:** when someone joins without a linked Discord ID, the bot DMs them their Discord user ID and a link to Seerr's notification settings. They don't need Discord Developer Mode to find the ID. Turn it off with `WELCOME_DM=false`. DMs aren't sent in dry-run mode.
+
 ## Safety
 
 - **Dry run by default.** With `ROLE_SYNC_DRY_RUN=true` it only logs `[dry run] would ADD/REMOVE …`. Set it to `false` once the log looks right.

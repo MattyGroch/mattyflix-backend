@@ -48,6 +48,23 @@ SYNC_INTERVAL_MINUTES = int(env("SYNC_INTERVAL_MINUTES", "15"))
 MAX_REMOVALS_PER_RUN = int(env("MAX_REMOVALS_PER_RUN", "5"))
 DRY_RUN = env("DRY_RUN", "true").lower() not in ("false", "0", "no")
 PROTECTED_IDS = {int(x) for x in env("PROTECTED_DISCORD_IDS", "").replace(" ", "").split(",") if x}
+SEERR_PUBLIC_URL = env("SEERR_PUBLIC_URL", "https://search.mattyflix.com").rstrip("/")
+WELCOME_DM = env("WELCOME_DM", "true").lower() not in ("false", "0", "no")
+
+WELCOME_TEXT = """\
+👋 Welcome to the Mattyflix Discord!
+
+Most of the server unlocks once your Discord is linked to your Plex account. It takes a minute:
+
+1. Open {seerr}/profile/settings/notifications/discord and sign in with your **Plex** account (if it sends you to the home page after login, open the link again)
+2. Paste this into the **User ID** field and save:
+```
+{discord_id}
+```
+3. That's it. Your access unlocks automatically within a few minutes.
+
+Don't have Plex access yet? Ask whoever invited you for a Mattyflix invite link first.\
+"""
 
 
 class SourceError(Exception):
@@ -208,6 +225,20 @@ class RoleSync(discord.Client):
             await self.set_role(member, role, True, "joined with Plex access")
         else:
             log.info("New member %s has no linked Plex access (yet)", member)
+            await self.send_welcome(member)
+
+    async def send_welcome(self, member):
+        """DM an unlinked new member their Discord ID and how to link it in Seerr."""
+        if not WELCOME_DM:
+            return
+        if DRY_RUN:
+            log.info("[dry run] would DM link instructions to %s", member)
+            return
+        try:
+            await member.send(WELCOME_TEXT.format(seerr=SEERR_PUBLIC_URL, discord_id=member.id))
+            log.info("Sent link instructions to %s", member)
+        except discord.Forbidden:
+            log.info("Could not DM %s (DMs closed)", member)
 
 
 if __name__ == "__main__":
