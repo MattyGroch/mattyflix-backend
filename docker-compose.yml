@@ -291,6 +291,138 @@ services:
       - proxy
     restart: unless-stopped
 
+  discord-role-sync:
+    # Gives the Discord "Member" role to everyone with Plex access and removes it
+    # when access ends (e.g. Wizarr expiry). See discord-role-sync/README.md.
+    build: ./discord-role-sync
+    image: mattyflix/discord-role-sync:local
+    container_name: discord-role-sync
+    environment:
+      - TZ=America/Detroit
+      - DISCORD_TOKEN=${ROLE_SYNC_DISCORD_TOKEN}
+      - GUILD_ID=1083290111233503302
+      - ROLE_ID=1174435703615135858
+      - PLEX_TOKEN=${ROLE_SYNC_PLEX_TOKEN}
+      - PLEX_MACHINE_ID=c0b30eb3ffb598b8bb19248f017e0cd07cba6439
+      - SEERR_URL=http://seerr:5055
+      - SEERR_API_KEY=${ROLE_SYNC_SEERR_API_KEY}
+      - DRY_RUN=${ROLE_SYNC_DRY_RUN:-true}
+      - MAX_REMOVALS_PER_RUN=${ROLE_SYNC_MAX_REMOVALS:-5}
+      - PROTECTED_DISCORD_IDS=${ROLE_SYNC_PROTECTED_IDS:-}
+    volumes:
+      - /var/config/discord-role-sync:/config:ro
+    depends_on:
+      - seerr
+    networks:
+      - proxy
+    restart: unless-stopped
+
+  wizarr:
+    # Plex invite and onboarding portal
+    image: ghcr.io/wizarrrr/wizarr:latest
+    container_name: wizarr
+    environment:
+      - PUID=1000
+      - PGID=999
+      - DISABLE_BUILTIN_AUTH=false
+      - TZ=America/Detroit
+    ports:
+      - 5690:5690
+    volumes:
+      - /var/config/wizarr/database:/data/database
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wizarr.entrypoints=websecure"
+      - "traefik.http.routers.wizarr.rule=Host(`join.mattyflix.com`)"
+      - "traefik.http.services.wizarr.loadbalancer.server.port=5690"
+    networks:
+      - proxy
+    restart: unless-stopped
+
+  plex-rewind:
+    # "Plex Wrapped"-style stats site, reads from Tautulli
+    image: ghcr.io/raunot/plex-rewind:latest
+    container_name: plex-rewind
+    environment:
+      - NEXTAUTH_SECRET=${PLEX_REWIND_NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=https://rewind.mattyflix.com
+      - NEXT_PUBLIC_SITE_URL=https://rewind.mattyflix.com
+    ports:
+      - 8383:8383
+    volumes:
+      - /var/config/plex-rewind:/app/config
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rewind.entrypoints=websecure"
+      - "traefik.http.routers.rewind.rule=Host(`rewind.mattyflix.com`)"
+      - "traefik.http.services.rewind.loadbalancer.server.port=8383"
+    networks:
+      - proxy
+    restart: unless-stopped
+
+  tauticord:
+    # Discord sidebar stats (streams, bandwidth, library counts) from Tautulli
+    image: nwithan8/tauticord:latest
+    container_name: tauticord
+    hostname: tauticord
+    environment:
+      TZ: America/Detroit
+      TC_DISCORD_BOT_TOKEN: ${TAUTICORD_DISCORD_TOKEN}
+      TC_DISCORD_SERVER_ID: 1083290111233503302
+      TC_DISCORD_ADMIN_IDS: 875066225309405265
+      TC_TAUTULLI_KEY: ${TAUTICORD_TAUTULLI_KEY}
+      TC_TAUTULLI_URL: http://tautulli:8181
+      TC_USE_SELF_SIGNED_CERT: "False"
+      TC_REFRESH_SECONDS: 15
+      TC_TERMINATE_MESSAGE: "Your stream has ended."
+      TC_SERVER_NAME: "Mattyflix"
+      TC_USE_24_HOUR_TIME: "False"
+      TC_HIDE_USERNAMES: "True"
+      TC_HIDE_PLATFORMS: "True"
+      TC_HIDE_PLAYER_NAMES: "True"
+      TC_HIDE_QUALITY: "False"
+      TC_HIDE_BANDWIDTH: "False"
+      TC_HIDE_TRANSCODE: "False"
+      TC_HIDE_PROGRESS: "False"
+      TC_HIDE_ETA: "False"
+      TC_USE_FRIENDLY_NAMES: "True"
+      TC_THOUSANDS_SEPARATOR: ","
+      TC_VC_STATS_CATEGORY_NAME: "Server Stats"
+      TC_VC_STREAM_COUNT: "True"
+      TC_VC_STREAM_COUNT_CHANNEL_ID: 0
+      TC_VC_TRANSCODE_COUNT: "True"
+      TC_VC_TRANSCODE_COUNT_CHANNEL_ID: 0
+      TC_VC_BANDWIDTH: "True"
+      TC_VC_BANDWIDTH_CHANNEL_ID: 0
+      TC_VC_LOCAL_BANDWIDTH: "False"
+      TC_VC_LOCAL_BANDWIDTH_CHANNEL_ID: 0
+      TC_VC_REMOTE_BANDWIDTH: "False"
+      TC_VC_REMOTE_BANDWIDTH_CHANNEL_ID: 0
+      TC_VC_PLEX_STATUS: "True"
+      TC_VC_PLEX_STATUS_CHANNEL_ID: 0
+      TC_VC_LIBRARIES_CATEGORY_NAME: "Library Stats"
+      TC_VC_LIBRARY_STATS: "True"
+      TC_VC_LIBRARY_NAMES: Movies,TV Shows,Anime - Movies,Anime - TV
+      TC_VC_LIBRARY_REFRESH_SECONDS: 3600
+      TC_VC_LIBRARY_USE_EMOJIS: "True"
+      TC_VC_TV_SERIES_COUNT: "True"
+      TC_VC_TV_EPISODE_COUNT: "True"
+      TC_DISCORD_POST_SUMMARY_MESSAGE: "True"
+      TC_DISCORD_CHANNEL_NAME: "stream-status"
+      TC_DISCORD_NITRO: "False"
+      TC_ALLOW_ANALYTICS: "True"
+      TC_VC_PERFORMANCE_CATEGORY_NAME: "Server Performance"
+      TC_MONITOR_CPU: "False"
+      TC_MONITOR_MEMORY: "False"
+    volumes:
+      - /var/config/tauticord:/config
+      - /var/logs/tauticord:/logs
+    depends_on:
+      - tautulli
+    networks:
+      - proxy
+    restart: unless-stopped
+
 networks:
   proxy:
     external: true
