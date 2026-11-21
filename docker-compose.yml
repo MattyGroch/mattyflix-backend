@@ -242,6 +242,8 @@ services:
         condition: service_healthy
     volumes:
       - /var/config/tracearr/backups:/data/backup
+      # Poster cache (IMAGE_CACHE_DIR); without this every container recreate re-downloads all posters
+      - /var/config/tracearr/image-cache:/data/tracearr/image-cache
     networks:
       - proxy
     labels:
